@@ -4,7 +4,8 @@
 \alias{spread_}
 \title{Standard-evaluation version of \code{spread}.}
 \usage{
-spread_(data, key_col, value_col, fill = NA, convert = FALSE, drop = TRUE)
+spread_(data, key_col, value_col, fill = NA, convert = FALSE, drop = TRUE,
+  other_col_as_one = NA)
 }
 \arguments{
 \item{data}{A data frame.}
@@ -25,6 +26,10 @@ conversion.}
 
 \item{drop}{If \code{FALSE}, will keep factor levels that don't appear in the
 data, filling in missing combinations with \code{fill}.}
+
+\item{other_col_as_one}{If there are more than one column except key and value
+and drop is \code{FALSE} \code{other_col_as_one=TRUE} will not add lines
+out of the crossproduct of these lines filled with \code{fill}}
 }
 \description{
 This is a S3 generic.

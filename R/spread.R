@@ -30,11 +30,48 @@
 #'                  value = c(5.1, "setosa", 1, 7.0, "versicolor", 2))
 #' df %>% spread(var, value) %>% str
 #' df %>% spread(var, value, convert = TRUE) %>% str
-spread <- function(data, key, value, fill = NA, convert = FALSE, drop = TRUE) {
+#'
+#' # Use of other_col_as_one
+#'
+#' df <- data.frame(year=rep(1:5,3), blood=rep(c("A", "B", "0"), 5), count=1:15)
+#' df$blood <- factor(df$blood, levels=c("A", "B", "AB", "0"))
+#' df$year2 <- df$year * 2
+#'
+#' # Here are two columns (year and year2) and factor-value 'AB' is missing
+#' # So we need drop=FALSE
+#'
+#' spread(df, blood, count, drop=FALSE, other_col_as_one = TRUE)
+#'
+#'    year year2  A  B AB  0
+#'  1    1     2  1 11 NA  6
+#'  2    2     4  7  2 NA 12
+#'  3    3     6 13  8 NA  3
+#'  4    4     8  4 14 NA  9
+#'  5    5    10 10  5 NA 15
+#'
+#' # With other_col_as_one = FALSE we get for every combination of year and year2
+#' # a line.
+#' head(spread(df, blood, count, drop=FALSE, other_col_as_one = FALSE), 10)
+#'
+#'    year year2  A  B AB  0
+#'  1    1     2  1 11 NA  6
+#'  2    1     4 NA NA NA NA
+#'  3    1     6 NA NA NA NA
+#'  4    1     8 NA NA NA NA
+#'  5    1    10 NA NA NA NA
+#'  6    2     2 NA NA NA NA
+#'  7    2     4  7  2 NA 12
+#'  8    2     6 NA NA NA NA
+#'  9    2     8 NA NA NA NA
+#'  10   2    10 NA NA NA NA
+spread <- function(data, key, value, fill = NA, convert = FALSE, drop = TRUE,
+                   other_col_as_one = NA) {
+  other_col_as_one <- ifelse(is.na(other_col_as_one), drop, other_col_as_one)
   key_col <- col_name(substitute(key))
   value_col <- col_name(substitute(value))
 
-  spread_(data, key_col, value_col, fill = fill, convert = convert, drop = drop)
+  spread_(data, key_col, value_col, fill = fill, convert = convert, drop = drop,
+          other_col_as_one = other_col_as_one)
 }
 
 #' Standard-evaluation version of \code{spread}.
@@ -55,10 +92,14 @@ spread <- function(data, key, value, fill = NA, convert = FALSE, drop = TRUE) {
 #'   conversion.
 #' @param drop If \code{FALSE}, will keep factor levels that don't appear in the
 #'   data, filling in missing combinations with \code{fill}.
+#' @param other_col_as_one If there are more than one column except key and value
+#'   and drop is \code{FALSE} \code{other_col_as_one=TRUE} will not add lines
+#'   out of the crossproduct of these lines filled with \code{fill}
 #' @keywords internal
 #' @export
 spread_ <- function(data, key_col, value_col, fill = NA, convert = FALSE,
-                    drop = TRUE) {
+                    drop = TRUE, other_col_as_one = NA) {
+  other_col_as_one <- ifelse(is.na(other_col_as_one), drop, other_col_as_one)
   if (!(key_col %in% names(data))) {
     stop("Key column '", key_col, "' does not exist in input.", call. = FALSE)
   }
@@ -72,8 +113,9 @@ spread_ <- function(data, key_col, value_col, fill = NA, convert = FALSE,
 #' @export
 #' @importFrom dplyr as_data_frame
 spread_.data.frame <- function(data, key_col, value_col, fill = NA,
-                               convert = FALSE, drop = TRUE) {
+                               convert = FALSE, drop = TRUE, other_col_as_one = NA) {
 
+  other_col_as_one <- ifelse(is.na(other_col_as_one), drop, other_col_as_one)
   col <- data[key_col]
   col_id <- id(col, drop = drop)
   col_labels <- split_labels(col, col_id, drop = drop)
@@ -84,8 +126,8 @@ spread_.data.frame <- function(data, key_col, value_col, fill = NA,
     row_id <- structure(1L, n = 1L)
     row_labels <- as.data.frame(matrix(nrow = 1, ncol = 0))
   } else {
-    row_id <- id(rows, drop = drop)
-    row_labels <- split_labels(rows, row_id, drop = drop)
+    row_id <- id(rows, drop = other_col_as_one)
+    row_labels <- split_labels(rows, row_id, drop = other_col_as_one)
     rownames(row_labels) <- NULL
   }
 
@@ -132,13 +174,17 @@ spread_.data.frame <- function(data, key_col, value_col, fill = NA,
 
 #' @export
 spread_.tbl_df <- function(data, key_col, value_col, fill = NA,
-                           convert = FALSE, drop = TRUE) {
+                           convert = FALSE, drop = TRUE, other_col_as_one = NA) {
+
+  other_col_as_one <- ifelse(is.na(other_col_as_one), drop, other_col_as_one)
   dplyr::tbl_df(NextMethod())
 }
 
 #' @export
 spread_.grouped_df <- function(data, key_col, value_col, fill = NA,
-                               convert = FALSE, drop = TRUE) {
+                               convert = FALSE, drop = TRUE, other_col_as_one = NA) {
+
+  other_col_as_one <- ifelse(is.na(other_col_as_one), drop, other_col_as_one)
   regroup(data, NextMethod(), except = c(key_col, value_col))
 }
 

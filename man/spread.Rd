@@ -4,7 +4,8 @@
 \alias{spread}
 \title{Spread a key-value pair across multiple columns.}
 \usage{
-spread(data, key, value, fill = NA, convert = FALSE, drop = TRUE)
+spread(data, key, value, fill = NA, convert = FALSE, drop = TRUE,
+  other_col_as_one = NA)
 }
 \arguments{
 \item{data}{A data frame.}
@@ -29,6 +30,10 @@ conversion.}
 
 \item{drop}{If \code{FALSE}, will keep factor levels that don't appear in the
 data, filling in missing combinations with \code{fill}.}
+
+\item{other_col_as_one}{If there are more than one column except key and value
+and drop is \code{FALSE} \code{other_col_as_one=TRUE} will not add lines
+out of the crossproduct of these lines filled with \code{fill}}
 }
 \description{
 Spread a key-value pair across multiple columns.
@@ -55,6 +60,40 @@ df <- data.frame(row = rep(c(1, 51), each = 3),
                  value = c(5.1, "setosa", 1, 7.0, "versicolor", 2))
 df \%>\% spread(var, value) \%>\% str
 df \%>\% spread(var, value, convert = TRUE) \%>\% str
+
+# Use of other_col_as_one
+
+df <- data.frame(year=rep(1:5,3), blood=rep(c("A", "B", "0"), 5), count=1:15)
+df$blood <- factor(df$blood, levels=c("A", "B", "AB", "0"))
+df$year2 <- df$year * 2
+
+# Here are two columns (year and year2) and factor-value 'AB' is missing
+# So we need drop=FALSE
+
+spread(df, blood, count, drop=FALSE, other_col_as_one = TRUE)
+
+   year year2  A  B AB  0
+ 1    1     2  1 11 NA  6
+ 2    2     4  7  2 NA 12
+ 3    3     6 13  8 NA  3
+ 4    4     8  4 14 NA  9
+ 5    5    10 10  5 NA 15
+
+# With other_col_as_one = FALSE we get for every combination of year and year2
+# a line.
+head(spread(df, blood, count, drop=FALSE, other_col_as_one = FALSE), 10)
+
+   year year2  A  B AB  0
+ 1    1     2  1 11 NA  6
+ 2    1     4 NA NA NA NA
+ 3    1     6 NA NA NA NA
+ 4    1     8 NA NA NA NA
+ 5    1    10 NA NA NA NA
+ 6    2     2 NA NA NA NA
+ 7    2     4  7  2 NA 12
+ 8    2     6 NA NA NA NA
+ 9    2     8 NA NA NA NA
+ 10   2    10 NA NA NA NA
 }
 \seealso{
 \code{\link{spread_}} for a version that uses regular evaluation

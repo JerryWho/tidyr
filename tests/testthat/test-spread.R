@@ -164,3 +164,15 @@ test_that("grouping vars are kept where possible", {
   out <- df %>% group_by(key) %>% spread(key, value)
   expect_equal(out, data_frame(a = 1L, b = 2L))
 })
+
+
+test_that("additional columns and missing values within a factor are fine",{
+  df <- data.frame(year=rep(1:5,3), blood=rep(c("A", "B", "N"), 5), count=1:15)
+  df$blood <- factor(df$blood, levels=c("A", "B", "AB", "N"))
+  df$year2 <- df$year * 2
+
+  out <- spread(df, blood, count, drop=FALSE, other_col_as_one = TRUE)
+  expected <- data.frame(year=1:5, year2=seq(2,10,by=2), A=c(1,7,13,4,10), B=c(11,2,8,14,5), AB=as.integer(rep(NA, 5)), N=c(6,12,3,9,15))
+
+  expect_equal(out, expected)
+})
